@@ -1,0 +1,16 @@
+{
+  "name": "@fi-fore/importer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone importer package seed for fi-fore",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist"
+  }
+}
