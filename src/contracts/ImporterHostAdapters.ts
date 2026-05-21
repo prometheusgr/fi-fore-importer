@@ -5,6 +5,15 @@ export interface AccountContext {
   name: string;
 }
 
+export interface AccountImportStatus {
+  accountId: number;
+  accountName: string;
+  accountType?: string;
+  lastImportedAt?: string | null;
+  freshnessLabel?: string;
+  freshnessClass?: string;
+}
+
 export interface MappingConfiguration {
   dateFormat: string;
   dateColumn: number;
@@ -62,15 +71,119 @@ export interface ImportCommitResult {
   importedCount: number;
   duplicateCount: number;
   invalidCount: number;
+  errorCode?: string;
+  errorDetails?: Record<string, any>;
+}
+
+export interface SavedMappingSummary {
+  id: number;
+  accountId: number;
+  accountName: string;
+  mappingName: string;
+}
+
+export interface SavedMappingRecord extends SavedMappingSummary {
+  mapping: MappingConfiguration;
+}
+
+export interface SaveMappingInput {
+  accountId: number;
+  mappingName: string;
+  mapping: MappingConfiguration;
+}
+
+export interface PreviewPersistenceInput {
+  account: AccountContext;
+  source: "csv" | "browser";
+  standardizedCsv: string;
+  preview: ImportPreview;
+}
+
+export interface CommitPersistenceInput {
+  account: AccountContext;
+  source: "csv" | "browser";
+  standardizedCsv: string;
+  result: ImportCommitResult;
+}
+
+export interface BrowserSessionContext {
+  account: AccountContext;
+  bankId?: number;
+}
+
+export interface BrowserSessionHandle {
+  sessionId: string;
+  createdAtIso: string;
+}
+
+export interface ImporterAuditEvent {
+  type: string;
+  atIso: string;
+  accountId?: number;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface AccountContextProvider {
+  getAllAccounts(): Promise<AccountContext[]>;
+  getAccountById(accountId: number): Promise<AccountContext | null>;
+  getAccountImportStatuses(): Promise<AccountImportStatus[]>;
+}
+
+export interface SavedMappingStore {
+  getAllMappings(): Promise<SavedMappingSummary[]>;
+  getMappingForAccount(accountId: number): Promise<SavedMappingRecord | null>;
+  saveMapping(input: SaveMappingInput): Promise<SavedMappingRecord>;
+  deleteMapping(mappingId: number): Promise<void>;
+}
+
+export interface ImportExecutionStore {
+  savePreview(input: PreviewPersistenceInput): Promise<void>;
+  saveCommit(input: CommitPersistenceInput): Promise<void>;
+  touchImported(accountId: number): Promise<void>;
+}
+
+export interface BrowserSessionBridge {
+  createSession(context: BrowserSessionContext): Promise<BrowserSessionHandle>;
+  validateSession(sessionId: string): Promise<boolean>;
+  closeSession(sessionId: string): Promise<void>;
+}
+
+export interface ImporterAuditLogger {
+  logEvent(event: ImporterAuditEvent): Promise<void> | void;
 }
 
 export interface TransactionImporter {
-  previewImport(csvContent: string): Promise<ImportPreview>;
-  importTransactions(csvContent: string): Promise<ImportCommitResult>;
+  previewImport(standardizedCsv: string): Promise<ImportPreview>;
+  importTransactions(standardizedCsv: string): Promise<ImportCommitResult>;
+}
+
+export interface ImporterUiHostAdapters {
+  accountContextProvider: AccountContextProvider;
+  savedMappingStore: SavedMappingStore;
+  importExecutionStore: ImportExecutionStore;
+  browserSessionBridge?: BrowserSessionBridge;
+  auditLogger?: ImporterAuditLogger;
 }
 
 export interface ImporterHostAdapters {
   mappingEngine: MappingEngine;
   transactionImporter: TransactionImporter;
   transactionSourceAdapter?: TransactionSourceAdapter;
+  uiHostAdapters?: ImporterUiHostAdapters;
 }
+
+/**
+ * DEFERRED: Browser UI Adapters (to be implemented in Phase 3+)
+ *
+ * These interfaces are designed for a future browser-based importer UI.
+ * CLI-only development should NOT use these.
+ *
+ * To be implemented when browser UI is built:
+ * - BrowserSessionBridge
+ * - ImporterAuditLogger
+ * - PreviewPersistenceInput / CommitPersistenceInput
+ */
+// export interface BrowserImporterHostAdapters extends ImporterHostAdapters {
+//   sessionBridge: BrowserSessionBridge;
+//   auditLogger: ImporterAuditLogger;
+// }
