@@ -53,9 +53,12 @@ Use descriptive branch names:
 Before submitting a pull request:
 
 ```bash
-npm run build
+npm run typecheck:all
 npm test
+npm run build
 ```
+
+`npm run typecheck:all` validates both production TypeScript types and Jest test typing, so issues in either code path are caught before review.
 
 Ensure:
 
