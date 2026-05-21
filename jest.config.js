@@ -12,6 +12,9 @@ const config = {
   ],
   coveragePathIgnorePatterns: ["/node_modules/"],
   moduleFileExtensions: ["ts", "js", "json"],
+  transform: {
+    "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
+  },
 };
 
 module.exports = config;

@@ -15,7 +15,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rimraf dist",
+    "dev": "npm run start:standalone",
+    "start:standalone": "npm run build && node dist/standalone/start.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:all": "npm run typecheck && npm run test:typecheck",
+    "test:typecheck": "tsc -p tsconfig.test.json --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
