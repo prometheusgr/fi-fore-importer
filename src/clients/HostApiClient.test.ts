@@ -62,6 +62,73 @@ describe("HostApiClient", () => {
     expect(accounts).toEqual([{ id: 1, name: "Cash" }]);
   });
 
+  it("returns null when account lookup responds with not found", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () =>
+        JSON.stringify({
+          success: false,
+          error: { message: "Account not found: 42", code: "NOT_FOUND" },
+        }),
+    });
+
+    const client = new HostApiClient({ fetchImpl: fetchMock });
+
+    await expect(client.getAccountById(42)).resolves.toBeNull();
+  });
+
+  it("preserves freshness metadata on import status responses", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          success: true,
+          data: [
+            {
+              accountId: 1,
+              accountName: "Cash",
+              accountType: "cash",
+              lastImportedAt: null,
+              freshnessLabel: "Never",
+              freshnessClass: "freshness-never",
+            },
+          ],
+        }),
+    });
+
+    const client = new HostApiClient({ fetchImpl: fetchMock });
+    const statuses = await client.getAccountImportStatuses();
+
+    expect(statuses).toEqual([
+      {
+        accountId: 1,
+        accountName: "Cash",
+        accountType: "cash",
+        lastImportedAt: null,
+        freshnessLabel: "Never",
+        freshnessClass: "freshness-never",
+      },
+    ]);
+  });
+
+  it("returns null when an account has no saved mapping", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          success: true,
+          data: null,
+        }),
+    });
+
+    const client = new HostApiClient({ fetchImpl: fetchMock });
+
+    await expect(client.getMappingForAccount(42)).resolves.toBeNull();
+  });
+
   it("throws API message on non-2xx response", async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: false,

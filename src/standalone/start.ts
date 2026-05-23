@@ -7,7 +7,11 @@ function parseNumberEnv(value: string | undefined, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-async function main(): Promise<void> {
+export function getBootstrapReadyMessage(): string {
+  return "[importer] standalone bootstrap ready. interactive CLI not implemented yet.";
+}
+
+export async function main(): Promise<void> {
   // Initialize working directory
   const workingDir = new WorkingDirectoryManager();
   await workingDir.init();
@@ -78,7 +82,7 @@ async function main(): Promise<void> {
     });
   }
 
-  console.log(`[importer] standalone runtime ready. type "help" for commands.`);
+  console.log(getBootstrapReadyMessage());
   await workingDir.appendLog(`Bootstrap complete: runtime ready`);
 }
 
@@ -90,8 +94,11 @@ function formatBytes(bytes: number): string {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-main().catch((err: unknown) => {
-  const message = err instanceof Error ? err.message : "Unknown startup error";
-  console.error(`[importer] startup failed: ${message}`);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void main().catch((err: unknown) => {
+    const message =
+      err instanceof Error ? err.message : "Unknown startup error";
+    console.error(`[importer] startup failed: ${message}`);
+    process.exitCode = 1;
+  });
+}
