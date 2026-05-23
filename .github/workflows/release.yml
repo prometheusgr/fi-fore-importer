@@ -1,0 +1,80 @@
+name: Release & Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release & Publish to NPM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Determine version bump
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Get last published version from npm
+          LAST_PUBLISHED=$(npm view @fi-fore/importer version 2>/dev/null || echo "0.0.0")
+          echo "last_published=$LAST_PUBLISHED" >> $GITHUB_OUTPUT
+
+          # Parse versions
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Increment patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version
+        run: npm version ${{ steps.version.outputs.new }} --no-git-tag-version
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit and push version bump
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add package.json package-lock.json
+          git commit -m "chore(release): bump to v${{ steps.version.outputs.new }}"
+          git tag "v${{ steps.version.outputs.new }}"
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new }}
+          body: |
+            ## Version ${{ steps.version.outputs.new }}
+
+            [View on npm](https://www.npmjs.com/package/@fi-fore/importer/v/${{ steps.version.outputs.new }})
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
